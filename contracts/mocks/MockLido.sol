@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockLido is ERC20("Staked ETH", "stETH") {
     address private oracle;
-    uint public fee = 100;
+    uint256 public fee = 100;
+
     function getFee() external view returns (uint256) {
         return fee;
     }
