@@ -739,13 +739,9 @@ contract IdleCDO is
             return isAATranche ? 0 : stratApr;
         }
         return
-            isAATranche
-                ? // AA apr is: stratApr * AAaprSplitRatio / AASplitRatio
-                (stratApr * _trancheAPRSplitRatio) / _AATrancheSplitRatio
-                : // BB apr is: stratApr * BBaprSplitRatio / BBSplitRatio -> where
-                // BBaprSplitRatio is: (FULL_ALLOC - _trancheAPRSplitRatio) and
-                // BBSplitRatio is: (FULL_ALLOC - _AATrancheSplitRatio)
-                (stratApr * (FULL_ALLOC - _trancheAPRSplitRatio)) /
+            isAATranche // AA apr is: stratApr * AAaprSplitRatio / AASplitRatio
+                ? (stratApr * _trancheAPRSplitRatio) / _AATrancheSplitRatio // BB apr is: stratApr * BBaprSplitRatio / BBSplitRatio -> where // BBaprSplitRatio is: (FULL_ALLOC - _trancheAPRSplitRatio) and // BBSplitRatio is: (FULL_ALLOC - _AATrancheSplitRatio)
+                : (stratApr * (FULL_ALLOC - _trancheAPRSplitRatio)) /
                     (FULL_ALLOC - _AATrancheSplitRatio);
     }
 
