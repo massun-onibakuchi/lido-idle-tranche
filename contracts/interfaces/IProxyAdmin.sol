@@ -2,6 +2,7 @@
 pragma solidity 0.8.7;
 
 interface IProxyAdmin {
-  function transferOwnership(address to) external;
-  function owner() external view returns(address);
+    function transferOwnership(address to) external;
+
+    function owner() external view returns (address);
 }
