@@ -2,6 +2,7 @@
 pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "hardhat/console.sol";
 
 contract MockLido is ERC20("Staked ETH", "stETH") {
     address private oracle;
@@ -9,6 +10,10 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
 
     function getFee() external view returns (uint256) {
         return fee;
+    }
+
+    function setFee(uint256 _fee) external {
+        fee = _fee;
     }
 
     function getOracle() external view returns (address) {
@@ -28,44 +33,49 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
         uint256 deposit = msg.value;
         require(deposit != 0, "ZERO_DEPOSIT");
 
-        uint256 sharesAmount = getSharesByPooledEth(deposit);
-        if (sharesAmount == 0) {
-            // totalControlledEther is 0: either the first-ever deposit or complete slashing
-            // assume that shares correspond to Ether 1-to-1
-            sharesAmount = deposit;
-        }
-
+        // totalControlledEther is 0: either the first-ever deposit or complete slashing
+        // assume that shares correspond to Ether 1-to-1
+        uint256 total = address(this).balance - deposit;
+        sharesAmount = (total == 0)
+            ? deposit
+            : (deposit * totalSupply()) / total;
         _mint(sender, sharesAmount);
     }
 
-    function getSharesByPooledEth(uint256 _ethAmount)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 totalPooledEther = _getTotalPooledEther();
-        if (totalPooledEther == 0) {
-            return 0;
-        } else {
-            return (_ethAmount * totalSupply()) / totalPooledEther;
-        }
-    }
+    // function getSharesByPooledEth(uint256 _ethAmount)
+    //     public
+    //     view
+    //     returns (uint256)
+    // {
+    //     uint256 totalPooledEther =  _getTotalPooledEther();
+    //     if (totalPooledEther == 0) {
+    //         return 0;
+    //     } else {
+    //         console.log("(11_ethAmount * totalSupply()) / totalPooledEther :>>", (_ethAmount * totalSupply()) / totalPooledEther);
+    //         return (_ethAmount * totalSupply()) / totalPooledEther;
+    //     }
+    // }
 
-    // Simplified for testing
-    function _getTotalPooledEther() internal view returns (uint256) {
+    // for testing
+    function getTotalPooledEther() public view returns (uint256) {
         return address(this).balance;
     }
 
-    function getPooledEthByShares(uint256 _sharesAmount)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 totalShares = totalSupply();
-        if (totalShares == 0) {
-            return 0;
-        } else {
-            return (_sharesAmount * _getTotalPooledEther()) / totalShares;
-        }
-    }
+    // Simplified for testing
+    // function _getTotalPooledEther() internal view returns (uint256) {
+    //     return address(this).balance;
+    // }
+
+    // function getPooledEthByShares(uint256 _sharesAmount)
+    //     public
+    //     view
+    //     returns (uint256)
+    // {
+    //     uint256 totalShares = totalSupply();
+    //     if (totalShares == 0) {
+    //         return 0;
+    //     } else {
+    //         return (_sharesAmount * _getTotalPooledEther()) / totalShares;
+    //     }
+    // }
 }

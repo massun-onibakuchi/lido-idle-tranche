@@ -12,6 +12,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
+import "hardhat/console.sol";
+
 /// @author Idle Labs Inc.
 /// @title IdleStrategy
 /// @notice IIdleCDOStrategy to deploy funds in Idle Finance
@@ -75,6 +77,7 @@ contract IdleLidoStrategy is
         address _strategyToken,
         address _wethToken,
         address _priceFeed,
+        address _stableSwap,
         address _owner,
         address _referral,
         uint256 _slipageBps
@@ -88,6 +91,7 @@ contract IdleLidoStrategy is
         token = _wethToken;
         lido = ILido(_strategyToken);
         priceFeed = IStETHPriceFeed(_priceFeed);
+        stableSwap = IStableSwapSTETH(_stableSwap);
         referral = _referral;
         slipageBps = _slipageBps;
 
@@ -120,7 +124,7 @@ contract IdleLidoStrategy is
                 _amount
             );
             IWETH(token).withdraw(_amount);
-            /// deposit those in Idle
+            /// deposit those in lido
             minted = _lido.submit{value: _amount}(referral);
             /// transfer stETH to msg.sender
             _lido.safeTransfer(msg.sender, minted);
@@ -179,15 +183,15 @@ contract IdleLidoStrategy is
             // get stETH from the user
             _lido.safeTransferFrom(msg.sender, address(this), _amount);
             // swap stETH for ETH
-            underlyingToken.safeApprove(address(stableSwap), _amount);
+            _lido.safeApprove(address(stableSwap), _amount);
             _swapStETHForETH(_amount, slipageBps);
-            redeemed = address(this).balance;
             // wrap ETH
+            redeemed = address(this).balance;
             IWETH(token).deposit{value: redeemed}();
             // transfer WETH to msg.sender
             underlyingToken.safeTransfer(msg.sender, redeemed);
-            // transfer gov tokens to msg.sender
-            _withdrawGovToken(msg.sender);
+            // // transfer gov tokens to msg.sender
+            // _withdrawGovToken(msg.sender);
         }
     }
 
@@ -214,13 +218,11 @@ contract IdleLidoStrategy is
     /// @return apr net apr (fees should already be excluded)
     function getApr() external view override returns (uint256 apr) {
         ILidoOracle _lidoOralce = ILidoOracle(lido.getOracle());
-
         (
             uint256 postTotalPooledEther,
             uint256 preTotalPooledEther,
             uint256 timeElapsed
         ) = _lidoOralce.getLastCompletedReportDelta();
-        uint256 lastCompletedEpochId = _lidoOralce.getLastCompletedEpochId();
         // Calculate APR
         apr =
             ((postTotalPooledEther - preTotalPooledEther) * secondsInYear) /
