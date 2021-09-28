@@ -190,7 +190,7 @@ contract IdleLidoStrategy is
             IWETH(token).deposit{value: redeemed}();
             // transfer WETH to msg.sender
             underlyingToken.safeTransfer(msg.sender, redeemed);
-            // // transfer gov tokens to msg.sender
+            // transfer gov tokens to msg.sender
             // _withdrawGovToken(msg.sender);
         }
     }
@@ -223,13 +223,19 @@ contract IdleLidoStrategy is
             uint256 preTotalPooledEther,
             uint256 timeElapsed
         ) = _lidoOralce.getLastCompletedReportDelta();
-        // Calculate APR
-        apr =
-            ((postTotalPooledEther - preTotalPooledEther) * secondsInYear) /
-            (preTotalPooledEther * timeElapsed);
-        // remove fee
-        // Fee in basis points.  10000 BP corresponding to 100%.
-        apr -= (apr * lido.getFee()) / 10000;
+
+        if (postTotalPooledEther > preTotalPooledEther) {
+            // Calculate APR
+            apr =
+                (((postTotalPooledEther - preTotalPooledEther) *
+                    secondsInYear) *
+                    1e18 *
+                    100) /
+                (preTotalPooledEther * timeElapsed);
+            // remove fee
+            // Fee in basis points.  10000 BP corresponding to 100%.
+            apr -= (apr * lido.getFee()) / 10000;
+        }
     }
 
     /// @return tokens array of reward token addresses
