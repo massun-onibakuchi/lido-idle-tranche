@@ -10,7 +10,7 @@ contract MockLidoOracle is ILidoOracle {
 
     function getLastCompletedEpochId()
         external
-        view
+        pure
         override
         returns (uint256)
     {

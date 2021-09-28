@@ -6,7 +6,7 @@ import "hardhat/console.sol";
 
 contract MockLido is ERC20("Staked ETH", "stETH") {
     address private oracle;
-    uint256 public fee = 100;
+    uint256 public fee = 1000;
 
     function getFee() external view returns (uint256) {
         return fee;
@@ -42,19 +42,19 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
         _mint(sender, sharesAmount);
     }
 
-    // function getSharesByPooledEth(uint256 _ethAmount)
-    //     public
-    //     view
-    //     returns (uint256)
-    // {
-    //     uint256 totalPooledEther =  _getTotalPooledEther();
-    //     if (totalPooledEther == 0) {
-    //         return 0;
-    //     } else {
-    //         console.log("(11_ethAmount * totalSupply()) / totalPooledEther :>>", (_ethAmount * totalSupply()) / totalPooledEther);
-    //         return (_ethAmount * totalSupply()) / totalPooledEther;
-    //     }
-    // }
+    function getSharesByPooledEth(uint256 _ethAmount)
+        public
+        view
+        returns (uint256)
+    {
+        // uint256 totalPooledEther =  _getTotalPooledEther();
+        // if (totalPooledEther == 0) {
+        //     return 0;
+        // } else {
+        //     console.log("(11_ethAmount * totalSupply()) / totalPooledEther :>>", (_ethAmount * totalSupply()) / totalPooledEther);
+        //     return (_ethAmount * totalSupply()) / totalPooledEther;
+        // }
+    }
 
     // for testing
     function getTotalPooledEther() public view returns (uint256) {
@@ -62,20 +62,20 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
     }
 
     // Simplified for testing
-    // function _getTotalPooledEther() internal view returns (uint256) {
-    //     return address(this).balance;
-    // }
+    function _getTotalPooledEther() internal view returns (uint256) {
+        return address(this).balance;
+    }
 
-    // function getPooledEthByShares(uint256 _sharesAmount)
-    //     public
-    //     view
-    //     returns (uint256)
-    // {
-    //     uint256 totalShares = totalSupply();
-    //     if (totalShares == 0) {
-    //         return 0;
-    //     } else {
-    //         return (_sharesAmount * _getTotalPooledEther()) / totalShares;
-    //     }
-    // }
+    function getPooledEthByShares(uint256 _sharesAmount)
+        public
+        view
+        returns (uint256)
+    {
+        // uint256 totalShares = totalSupply();
+        // if (totalShares == 0) {
+        //     return 0;
+        // } else {
+        //     return (_sharesAmount * _getTotalPooledEther()) / totalShares;
+        // }
+    }
 }
