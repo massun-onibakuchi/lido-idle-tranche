@@ -15,7 +15,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "hardhat/console.sol";
 
 /// @author Idle Labs Inc.
-/// @title IdleStrategy
+/// @title IdleLidoStrategy
 /// @notice IIdleCDOStrategy to deploy funds in Idle Finance
 /// @dev This contract should not have any funds at the end of each tx.
 /// The contract is upgradable, to add storage slots, add them after the last `###### End of storage VXX`
@@ -31,7 +31,8 @@ contract IdleLidoStrategy is
     /// ###### Storage V1
     /// @notice one stETH (It have 18 decimals)
     uint256 public constant ONE_STETH_TOKEN = 10**18;
-    uint256 private constant secondsInYear = 365 * 24 * 60 * 60;
+    /// @notice seconds in year
+    uint256 private constant SECONDS_IN_YEAR = 365 * 24 * 60 * 60;
     /// @notice address of the strategy used, in this case Lido StETH
     address public override strategyToken;
     /// @notice underlying token address (WETH)
@@ -228,7 +229,7 @@ contract IdleLidoStrategy is
             // Calculate APR
             apr =
                 (((postTotalPooledEther - preTotalPooledEther) *
-                    secondsInYear) *
+                    SECONDS_IN_YEAR) *
                     1e18 *
                     100) /
                 (preTotalPooledEther * timeElapsed);
