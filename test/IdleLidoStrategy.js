@@ -137,7 +137,7 @@ describe("IdleLidoStrategy", function () {
 
     expect(
       await underlying.allowance(strategy.address, lido.address)
-    ).to.be.equal(MAX_UINT);
+    ).to.be.equal(0);
     expect(await strategy.owner()).to.equal(owner.address);
   });
 

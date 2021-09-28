@@ -99,7 +99,7 @@ contract IdleLidoStrategy is
         tokenDecimals = IERC20Detailed(token).decimals();
         oneToken = 10**(tokenDecimals);
         underlyingToken = IERC20Detailed(token);
-        underlyingToken.safeApprove(_strategyToken, type(uint256).max);
+
         // transfer ownership
         transferOwnership(_owner);
     }
@@ -192,10 +192,14 @@ contract IdleLidoStrategy is
             // transfer WETH to msg.sender
             underlyingToken.safeTransfer(msg.sender, redeemed);
             // transfer gov tokens to msg.sender
-            // _withdrawGovToken(msg.sender);
+            _withdrawGovToken(msg.sender);
         }
     }
 
+    /// @dev Swap stETH for ETH on the specified Curve stETH/ETH pool
+    /// @param _amountStETH input amount of stETH 
+    /// @param _slipageBps slipage tollerance
+    /// @return amountOutETH 
     function _swapStETHForETH(uint256 _amountStETH, uint256 _slipageBps)
         internal
         returns (uint256 amountOutETH)
@@ -216,6 +220,7 @@ contract IdleLidoStrategy is
         return price_;
     }
 
+    /// @dev Lido stETH: calculation of staker rewards  https://docs.lido.fi/contracts/lido-oracle#add-calculation-of-staker-rewards-apr
     /// @return apr net apr (fees should already be excluded)
     function getApr() external view override returns (uint256 apr) {
         ILidoOracle _lidoOralce = ILidoOracle(lido.getOracle());
