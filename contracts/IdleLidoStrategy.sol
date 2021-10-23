@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
 import "./interfaces/IIdleCDOStrategy.sol";
@@ -17,12 +17,7 @@ import "hardhat/console.sol";
 /// @notice IIdleCDOStrategy to deploy funds in Idle Finance
 /// @dev This contract should not have any funds at the end of each tx.
 /// The contract is upgradable, to add storage slots, add them after the last `###### End of storage VXX`
-contract IdleLidoStrategy is
-    Initializable,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    IIdleCDOStrategy
-{
+contract IdleLidoStrategy is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, IIdleCDOStrategy {
     using SafeERC20Upgradeable for IERC20Detailed;
     using SafeERC20Upgradeable for ILido;
 
@@ -78,7 +73,7 @@ contract IdleLidoStrategy is
         tokenDecimals = IERC20Detailed(token).decimals();
         oneToken = 10**(tokenDecimals);
 
-        lido.safeApprove(_strategyToken,type(uint256).max);
+        lido.safeApprove(_strategyToken, type(uint256).max);
         // transfer ownership
         transferOwnership(_owner);
     }
@@ -90,18 +85,10 @@ contract IdleLidoStrategy is
     /// @dev msg.sender should approve this contract first to spend `_amount` of `token`
     /// @param _amount amount of `token` to deposit
     /// @return minted strategyTokens minted
-    function deposit(uint256 _amount)
-        external
-        override
-        returns (uint256 minted)
-    {
+    function deposit(uint256 _amount) external override returns (uint256 minted) {
         if (_amount > 0) {
             /// get `tokens` from msg.sender
-            lido.safeTransferFrom(
-                msg.sender,
-                address(this),
-                _amount
-            );
+            lido.safeTransferFrom(msg.sender, address(this), _amount);
             minted = IWstETH(strategyToken).wrap(_amount);
             /// transfer stETH to msg.sender
             IERC20Detailed(strategyToken).safeTransfer(msg.sender, minted);
@@ -119,21 +106,13 @@ contract IdleLidoStrategy is
     /// NOTE: stkAAVE rewards are not sent back to the use but accumulated in this contract until 'pullStkAAVE' is called
     /// @dev msg.sender should approve this contract first to spend `_amount` of `strategyToken`.
     /// redeem rewards and transfer them to msg.sender
-    function redeemRewards()
-        external
-        override
-        returns (uint256[] memory _balances)
-    {}
+    function redeemRewards() external override returns (uint256[] memory _balances) {}
 
     /// @dev msg.sender should approve this contract first
     /// to spend `_amount * ONE_STETH_TOKEN / price()` of `strategyToken`
     /// @param _amount amount of underlying tokens to redeem
     /// @return amount of underlyings redeemed
-    function redeemUnderlying(uint256 _amount)
-        external
-        override
-        returns (uint256)
-    {
+    function redeemUnderlying(uint256 _amount) external override returns (uint256) {
         // we are getting price before transferring so price of msg.sender
         return _redeem((_amount * ONE_STETH_TOKEN) / price());
     }
@@ -146,10 +125,7 @@ contract IdleLidoStrategy is
     /// NOTE: stkAAVE rewards are not sent back to the use but accumulated in this contract until 'pullStkAAVE' is called
     /// @dev only called
     /// @param _to address where to send gov tokens (rewards)
-    function _withdrawGovToken(address _to)
-        internal
-        returns (uint256[] memory _balances)
-    {}
+    function _withdrawGovToken(address _to) internal returns (uint256[] memory _balances) {}
 
     /// @dev msg.sender should approve this contract first to spend `_amount` of `strategyToken`
     /// @param _amount amount of strategyTokens to redeem
@@ -181,18 +157,15 @@ contract IdleLidoStrategy is
     function getApr() external view override returns (uint256 apr) {
         ILidoOracle _lidoOralce = ILidoOracle(lido.getOracle());
         (
-            uint256 postTotalPooledEther,
-            uint256 preTotalPooledEther,
+            uint256 postTotalPooledEther, 
+            uint256 preTotalPooledEther, 
             uint256 timeElapsed
         ) = _lidoOralce.getLastCompletedReportDelta();
 
         if (postTotalPooledEther > preTotalPooledEther) {
             // Calculate APR
             apr =
-                (((postTotalPooledEther - preTotalPooledEther) *
-                    SECONDS_IN_YEAR) *
-                    1e18 *
-                    100) /
+                (((postTotalPooledEther - preTotalPooledEther) * SECONDS_IN_YEAR) * 1e18 * 100) /
                 (preTotalPooledEther * timeElapsed);
             // remove fee
             // Fee in basis points.  10000 BP corresponding to 100%.
@@ -201,12 +174,7 @@ contract IdleLidoStrategy is
     }
 
     /// @return tokens array of reward token addresses
-    function getRewardTokens()
-        external
-        view
-        override
-        returns (address[] memory tokens)
-    {}
+    function getRewardTokens() external view override returns (address[] memory tokens) {}
 
     // ###################
     // Protected
