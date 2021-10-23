@@ -24,6 +24,10 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
         oracle = _oracle;
     }
 
+    function totalSupply() public view override returns (uint256) {
+        return address(this).balance;
+    }
+
     function submit(address _referral)
         public
         payable
@@ -47,18 +51,17 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
         view
         returns (uint256)
     {
-        // uint256 totalPooledEther =  _getTotalPooledEther();
-        // if (totalPooledEther == 0) {
-        //     return 0;
-        // } else {
-        //     console.log("(11_ethAmount * totalSupply()) / totalPooledEther :>>", (_ethAmount * totalSupply()) / totalPooledEther);
-        //     return (_ethAmount * totalSupply()) / totalPooledEther;
-        // }
+            uint256 totalPooledEther =  _getTotalPooledEther();
+            if (totalPooledEther == 0) {
+                return 0;
+            } else {
+                return (_ethAmount * totalSupply()) / totalPooledEther;
+            }
     }
 
-    // for testing
+    // Simplified for testing
     function getTotalPooledEther() public view returns (uint256) {
-        return address(this).balance;
+        return _getTotalPooledEther();
     }
 
     // Simplified for testing
@@ -66,16 +69,17 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
         return address(this).balance;
     }
 
+    // Simplified for testing
     function getPooledEthByShares(uint256 _sharesAmount)
         public
         view
         returns (uint256)
     {
-        // uint256 totalShares = totalSupply();
-        // if (totalShares == 0) {
-        //     return 0;
-        // } else {
-        //     return (_sharesAmount * _getTotalPooledEther()) / totalShares;
-        // }
+        uint256 totalShares = totalSupply();
+        if (totalShares == 0) {
+            return 0;
+        } else {
+            return (_sharesAmount * _getTotalPooledEther()) / totalShares;
+        }
     }
 }
