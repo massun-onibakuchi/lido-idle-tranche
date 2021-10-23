@@ -35,15 +35,9 @@ describe("IdleLidoStrategy", function () {
 
     one = ONE_TOKEN(18);
 
-    const MockWETH = await ethers.getContractFactory("MockWETH");
     const MockLido = await ethers.getContractFactory("MockLido"); // underlyingToken
     const MockWstETH = await ethers.getContractFactory("MockWstETH"); // strategyToken
     const MockLidoOracle = await ethers.getContractFactory("MockLidoOracle");
-
-    weth = await MockWETH.deploy({
-      value: BN("100").mul(ONE_TOKEN(18)),
-    });
-    await weth.deployed();
 
     lido = await MockLido.deploy();
     await lido.deployed();
@@ -116,7 +110,7 @@ describe("IdleLidoStrategy", function () {
   it("should deposit", async () => {
     const addr = AABuyerAddr;
     const _amount = BN("1").mul(one);
-    const _outputStEth = await calcOuputWstEth(_amount);
+    const _outputWstEth = await calcOuputWstEth(_amount);
 
     const initialWstEthBal = await wstETH.balanceOf(addr);
 
@@ -125,7 +119,7 @@ describe("IdleLidoStrategy", function () {
     const finalWstEthBal = await wstETH.balanceOf(addr);
 
     expect(initialAmount.sub(finalBal)).to.equal(_amount);
-    expect(finalWstEthBal.sub(initialWstEthBal)).to.equal(_outputStEth);
+    expect(finalWstEthBal.sub(initialWstEthBal)).to.equal(_outputWstEth);
 
     // No token left in the contract
     expect(await underlying.balanceOf(strategy.address)).to.equal(0);
@@ -149,9 +143,9 @@ describe("IdleLidoStrategy", function () {
     await redeem(addr, _outputWstEth);
 
     const finalBal = await underlying.balanceOf(addr);
-    const finalStEthBal = await wstETH.balanceOf(addr);
+    const finalWstEthBal = await wstETH.balanceOf(addr);
 
-    expect(finalStEthBal).to.equal(0);
+    expect(finalWstEthBal).to.equal(0);
     expect(finalBal.sub(initialBal)).to.equal(_amount);
 
     // No token left in the contract
