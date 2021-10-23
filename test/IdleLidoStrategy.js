@@ -32,33 +32,28 @@ describe("IdleLidoStrategy", function () {
     RandomAddr = Random.address;
     Random2 = signers[6];
     Random2Addr = Random2.address;
-    Fund = signers[7];
 
     one = ONE_TOKEN(18);
-    slipageBps = 100;
 
     const MockWETH = await ethers.getContractFactory("MockWETH");
-    const MockLido = await ethers.getContractFactory("MockLido");
+    const MockLido = await ethers.getContractFactory("MockLido"); // underlyingToken
+    const MockWstETH = await ethers.getContractFactory("MockWstETH"); // strategyToken
     const MockLidoOracle = await ethers.getContractFactory("MockLidoOracle");
-    const PriceFeed = await ethers.getContractFactory("MockStETHPriceFeed");
-    const StableSwap = await ethers.getContractFactory("MockStableSwapSTETH");
 
-    underlying = await MockWETH.deploy({
+    weth = await MockWETH.deploy({
       value: BN("100").mul(ONE_TOKEN(18)),
     });
-    await underlying.deployed();
+    await weth.deployed();
 
     lido = await MockLido.deploy();
     await lido.deployed();
+    underlying = lido
+
+    wstETH = await MockWstETH.deploy(lido.address);
+    await wstETH.deployed();
 
     oracle = await MockLidoOracle.deploy();
     await oracle.deployed();
-
-    priceFeed = await PriceFeed.deploy();
-    await priceFeed.deployed();
-
-    stableSwap = await StableSwap.deploy();
-    await stableSwap.deployed();
 
     // Params
     initialAmount = BN("10").mul(ONE_TOKEN(18));
@@ -66,16 +61,16 @@ describe("IdleLidoStrategy", function () {
     strategy = await helpers.deployUpgradableContract(
       "IdleLidoStrategy",
       [
-        lido.address,
+        wstETH.address,
         underlying.address,
-        priceFeed.address,
-        stableSwap.address,
         owner.address,
-        ZERO_ADDRESS,
-        slipageBps,
       ],
       owner
     );
+
+    await lido
+      .connect(owner)
+      .submit(ZERO_ADDRESS, { value: BN("50").mul(ONE_TOKEN(18)) });
 
     // Fund wallets
     await helpers.fundWallets(
@@ -85,25 +80,11 @@ describe("IdleLidoStrategy", function () {
         BBBuyerAddr,
         AABuyer2Addr,
         BBBuyer2Addr,
-        stableSwap.address,
       ],
       owner.address,
       initialAmount
     );
-    await lido
-      .connect(Fund)
-      .submit(ZERO_ADDRESS, { value: BN("10").mul(ONE_TOKEN(18)) });
 
-    Fund.sendTransaction({
-      to: stableSwap.address,
-      value: BN("10").mul(ONE_TOKEN(18)),
-    });
-
-    // set mocks
-    await stableSwap.setCoins([
-      "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-      lido.address,
-    ]);
     await lido.setOracle(oracle.address);
   });
 
@@ -113,82 +94,69 @@ describe("IdleLidoStrategy", function () {
         .connect(owner)
         .initialize(
           lido.address,
-          underlying.address,
-          priceFeed.address,
-          stableSwap.address,
+          wstETH.address,
           owner.address,
-          ZERO_ADDRESS,
-          slipageBps
         )
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
   it("should initialize", async () => {
-    expect(await strategy.strategyToken()).to.equal(lido.address);
+    expect(await strategy.strategyToken()).to.equal(wstETH.address);
     expect(await strategy.token()).to.equal(underlying.address);
     expect(await strategy.oneToken()).to.be.equal(one);
     expect(await strategy.tokenDecimals()).to.be.equal(BN(18));
-    expect(await strategy.underlyingToken()).to.be.equal(underlying.address);
     expect(await strategy.lido()).to.equal(lido.address);
-    expect(await strategy.stableSwap()).to.equal(stableSwap.address);
-    expect(await strategy.priceFeed()).to.equal(priceFeed.address);
-    expect(await strategy.referral()).to.equal(ZERO_ADDRESS);
-    expect(await strategy.slipageBps()).to.equal(slipageBps);
 
     expect(
-      await underlying.allowance(strategy.address, lido.address)
-    ).to.be.equal(0);
+      await underlying.allowance(strategy.address, wstETH.address)
+    ).to.be.equal(MAX_UINT);
     expect(await strategy.owner()).to.equal(owner.address);
   });
 
   it("should deposit", async () => {
     const addr = AABuyerAddr;
     const _amount = BN("1").mul(one);
-    const _outputStEth = await calcOuputStEth(_amount);
+    const _outputStEth = await calcOuputWstEth(_amount);
 
-    const initialStEthBal = await lido.balanceOf(addr);
+    const initialWstEthBal = await wstETH.balanceOf(addr);
 
     await deposit(addr, _amount);
     const finalBal = await underlying.balanceOf(addr);
-    const finalStEthBal = await lido.balanceOf(addr);
+    const finalWstEthBal = await wstETH.balanceOf(addr);
 
     expect(initialAmount.sub(finalBal)).to.equal(_amount);
-    expect(finalStEthBal.sub(initialStEthBal)).to.equal(_outputStEth);
+    expect(finalWstEthBal.sub(initialWstEthBal)).to.equal(_outputStEth);
 
     // No token left in the contract
     expect(await underlying.balanceOf(strategy.address)).to.equal(0);
-    expect(await lido.balanceOf(strategy.address)).to.equal(0);
+    expect(await wstETH.balanceOf(strategy.address)).to.equal(0);
   });
 
-  const calcOuputStEth = async (deposit) => {
-    const total = await lido.getTotalPooledEther();
-    const totalSupply = await lido.totalSupply();
-    if (total.eq(BN(0))) return deposit;
-    else return deposit.mul(totalSupply).div(total);
+  const calcOuputWstEth = async (deposit) => {
+    return await lido.getSharesByPooledEth(deposit);
   };
 
   it("should redeem", async () => {
     const addr = AABuyerAddr;
     const _amount = BN("1").mul(one);
-    const _outputStEth = await calcOuputStEth(_amount);
+    const _outputWstEth = await calcOuputWstEth(_amount);
 
     await deposit(addr, _amount);
 
-    const initialStEthBal = await lido.balanceOf(addr);
     const initialBal = await underlying.balanceOf(addr);
+    const initialWstEthBal = await wstETH.balanceOf(addr);
 
-    await priceFeed.setPrice(one);
-    await redeem(addr, _outputStEth);
+    await redeem(addr, _outputWstEth);
 
-    const finalStEthBal = await lido.balanceOf(addr);
     const finalBal = await underlying.balanceOf(addr);
+    const finalStEthBal = await wstETH.balanceOf(addr);
 
     expect(finalStEthBal).to.equal(0);
     expect(finalBal.sub(initialBal)).to.equal(_amount);
 
     // No token left in the contract
     expect(await underlying.balanceOf(strategy.address)).to.equal(0);
-    expect(await lido.balanceOf(strategy.address)).to.equal(0);
+    expect(await wstETH.balanceOf(strategy.address)).to.equal(0);
   });
 
   it("should skip redeem if amount is 0", async () => {
@@ -198,20 +166,19 @@ describe("IdleLidoStrategy", function () {
     await deposit(addr, _amount);
 
     const initialBal = await underlying.balanceOf(addr);
-    const initialStEthBal = await lido.balanceOf(addr);
+    const initialWstEthBal = await wstETH.balanceOf(addr);
 
-    await priceFeed.setPrice(one);
     await redeem(addr, BN("0"));
 
-    const finalStEthBal = await lido.balanceOf(addr);
     const finalBal = await underlying.balanceOf(addr);
+    const finalWstEthBal = await wstETH.balanceOf(addr);
 
-    expect(finalStEthBal).to.equal(initialStEthBal);
+    expect(finalWstEthBal).to.equal(initialWstEthBal);
     expect(finalBal).to.equal(initialBal);
 
     // No token left in the contract
     expect(await underlying.balanceOf(strategy.address)).to.equal(0);
-    expect(await lido.balanceOf(strategy.address)).to.equal(0);
+    expect(await wstETH.balanceOf(strategy.address)).to.equal(0);
   });
   it("should redeemUnderlying", async () => {
     const addr = AABuyerAddr;
@@ -219,21 +186,20 @@ describe("IdleLidoStrategy", function () {
 
     await deposit(addr, _amount);
 
-    const initialStEthBal = await lido.balanceOf(addr);
+    const initialWstEthBal = await wstETH.balanceOf(addr);
     const initialBal = await underlying.balanceOf(addr);
 
-    await priceFeed.setPrice(one);
     await redeemUnderlying(addr, _amount);
 
-    const finalStEthBal = await lido.balanceOf(addr);
+    const finalWstEthBal = await wstETH.balanceOf(addr);
     const finalBal = await underlying.balanceOf(addr);
 
-    expect(finalStEthBal).to.equal(0);
+    expect(finalWstEthBal).to.equal(0);
     expect(finalBal.sub(initialBal)).to.equal(_amount);
 
     // No token left in the contract
     expect(await underlying.balanceOf(strategy.address)).to.equal(0);
-    expect(await lido.balanceOf(strategy.address)).to.equal(0);
+    expect(await wstETH.balanceOf(strategy.address)).to.equal(0);
   });
   it("should skip redeemRewards if bal is 0", async () => {
     const addr = RandomAddr;
@@ -258,9 +224,8 @@ describe("IdleLidoStrategy", function () {
   });
 
   it("should return the current price", async () => {
-    const _amount = BN("1").mul(one);
-    await priceFeed.setPrice(_amount);
-    expect(await strategy.price()).to.equal(_amount);
+    const stEthPerToken = await wstETH.stEthPerToken();
+    expect(await strategy.price()).to.equal(stEthPerToken);
   });
 
   it("should return the current net apr", async () => {
@@ -310,15 +275,15 @@ describe("IdleLidoStrategy", function () {
     await helpers.sudoCall(addr, strategy, "deposit", [amount]);
   };
   const redeem = async (addr, amount) => {
-    await helpers.sudoCall(addr, lido, "approve", [strategy.address, MAX_UINT]);
+    await helpers.sudoCall(addr, wstETH, "approve", [strategy.address, MAX_UINT]);
     await helpers.sudoCall(addr, strategy, "redeem", [amount]);
   };
   const redeemUnderlying = async (addr, amount) => {
-    await helpers.sudoCall(addr, lido, "approve", [strategy.address, MAX_UINT]);
+    await helpers.sudoCall(addr, wstETH, "approve", [strategy.address, MAX_UINT]);
     await helpers.sudoCall(addr, strategy, "redeemUnderlying", [amount]);
   };
   const redeemRewards = async (addr, amount) => {
-    await helpers.sudoCall(addr, lido, "approve", [strategy.address, MAX_UINT]);
+    await helpers.sudoCall(addr, wstETH, "approve", [strategy.address, MAX_UINT]);
     const [a, b, res] = await helpers.sudoCall(
       addr,
       strategy,
