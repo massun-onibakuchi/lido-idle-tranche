@@ -29,6 +29,7 @@ contract LidoCDOTrancheGateway {
         IdleCDO _idleCDO,
         address _referral
     ) {
+        require(_wethToken != address(0) && _wstETH != address(0) && _stETH != address(0) && address(_idleCDO) != address(0),"zero-address");
         wethToken = _wethToken;
         wstETH = _wstETH;
         stETH = _stETH;
@@ -73,7 +74,7 @@ contract LidoCDOTrancheGateway {
             amtToDeposit = _mintStEth(address(this).balance);
         } else if (_token == stETH) {
             amtToDeposit = _amount;
-            IERC20(stETH).safeTransferFrom(_from, address(this), amtToDeposit);
+            IERC20(stETH).safeTransferFrom(_from, address(this), _amount);
         } else {
             revert("invalid-token-address");
         }
