@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.7;
 
-import './IStETH.sol';
-
 interface IWstETH {
     /**
      * @notice Exchanges stETH to wstETH

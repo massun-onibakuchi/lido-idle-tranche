@@ -28,7 +28,6 @@ contract MockWstETH is ERC20Permit {
      * @param _stETH address of the StETH token to wrap
      */
     constructor(IStETH _stETH)
-        public
         ERC20Permit("Wrapped liquid staked Ether 2.0")
         ERC20("Wrapped liquid staked Ether 2.0", "wstETH")
     {
