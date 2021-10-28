@@ -87,10 +87,10 @@ contract IdleLidoStrategy is Initializable, OwnableUpgradeable, ReentrancyGuardU
     /// @return minted strategyTokens minted
     function deposit(uint256 _amount) external override returns (uint256 minted) {
         if (_amount > 0) {
-            /// get `tokens` from msg.sender
+            /// get stETH from msg.sender
             lido.safeTransferFrom(msg.sender, address(this), _amount);
             minted = IWstETH(strategyToken).wrap(_amount);
-            /// transfer stETH to msg.sender
+            /// transfer wstETH to msg.sender
             IERC20Detailed(strategyToken).safeTransfer(msg.sender, minted);
         }
     }
@@ -132,14 +132,12 @@ contract IdleLidoStrategy is Initializable, OwnableUpgradeable, ReentrancyGuardU
     /// @return redeemed amount of underlyings redeemed
     function _redeem(uint256 _amount) internal returns (uint256 redeemed) {
         if (_amount > 0) {
-            // get stETH from the user
+            // get wstETH from msg.sender
             IERC20Detailed(strategyToken).safeTransferFrom(msg.sender, address(this), _amount);
-            // redeem underlyings from Idle
+            // unwrap wsETH to stETH
             redeemed = IWstETH(strategyToken).unwrap(_amount);
-            // transfer underlyings to msg.sender
+            // transfer stETH to msg.sender
             lido.safeTransfer(msg.sender, redeemed);
-            // transfer gov tokens to msg.sender
-            _withdrawGovToken(msg.sender);
         }
     }
 

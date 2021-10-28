@@ -68,7 +68,6 @@ contract LidoCDOTrancheGateway {
         uint amtToDeposit;
         if (_token == wethToken) {
             IERC20(wethToken).safeTransferFrom(_from, address(this), _amount);
-            IERC20(wethToken).safeApprove(wethToken, _amount);
             IWETH(wethToken).withdraw(_amount);
             // mint stETH
             amtToDeposit = _mintStEth(address(this).balance);

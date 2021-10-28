@@ -82,4 +82,17 @@ contract MockLido is ERC20("Staked ETH", "stETH") {
             return (_sharesAmount * _getTotalPooledEther()) / totalShares;
         }
     }
+
+    // For testing
+    function getBeaconStat() 
+        external 
+        view 
+        returns (
+            uint256 depositedValidators,
+            uint256 beaconValidators,
+            uint256 beaconBalance
+        )
+    {
+
+    }
 }
