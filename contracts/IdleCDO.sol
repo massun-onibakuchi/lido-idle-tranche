@@ -540,6 +540,10 @@ contract IdleCDO is
             // keep 100 wei as margin for rounding errors
             require(_redeemedTokens + 100 >= _amount, "5");
         }
+        /// XXX issue
+        if (_redeemedTokens > _amount) {
+            _redeemedTokens = _amount;
+        }
     }
 
     /// @notice sends rewards to the tranche rewards staking contracts

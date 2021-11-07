@@ -114,7 +114,7 @@ contract IdleLidoStrategy is Initializable, OwnableUpgradeable, ReentrancyGuardU
     /// @return amount of underlyings redeemed
     function redeemUnderlying(uint256 _amount) external override returns (uint256) {
         // we are getting price before transferring so price of msg.sender
-        return _redeem((_amount * ONE_STETH_TOKEN) / price());
+        return _redeem(IWstETH(strategyToken).getWstETHByStETH(_amount));
     }
 
     // ###################
