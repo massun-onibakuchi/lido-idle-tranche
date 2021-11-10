@@ -263,7 +263,7 @@ describe("IdleLidoCDO", function () {
 
     // Lido oracle updates the status
     const { beaconBalance } = await lido.getBeaconStat()
-    // await rebaseStETH(lido.address, beaconBalance.add(ONE_TOKEN(18).mul(10)))
+    await rebaseStETH(lido.address, beaconBalance.add(ONE_TOKEN(9)))
   }
 
   const mineBlocks = async ({ blocks }) => {
@@ -272,15 +272,18 @@ describe("IdleLidoCDO", function () {
     }
   }
 
+  // trigger rebasing stETH token manually, using `hardhat_setStorageAt`
+  // stETH contract use unstructured storage layout for storing beacon balance.
+  // ref: https://github.com/lidofinance/lido-dao/blob/816bf1d0995ba5cfdfc264de4acda34a7fe93eba/contracts/0.4.24/Lido.sol#L78
   const rebaseStETH = async (lidoAddr, balance) => {
-    const value = ethers.utils.formatBytes32String(balance.toString())
+    const value = '0x' + balance.toHexString().slice(2).padStart(64, '0')
     const slot = solidityKeccak256(["string"], ["lido.Lido.beaconBalance"])
     const prevValue = await hre.network.provider.send("eth_getStorageAt", [
       lidoAddr,
       slot,
     ])
-    console.log(`Get Storage at ${slot} value ${BN(prevValue).toString()}`);
-    console.log(`Set Storage at ${slot} value ${balance.toString()}`);
+    console.log(`Set Storage at ${slot} from ${prevValue} to ${value}`);
+    // Override beacon balance.
     await hre.network.provider.send("hardhat_setStorageAt", [
       lidoAddr,
       slot,
